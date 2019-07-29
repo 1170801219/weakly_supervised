@@ -14,8 +14,7 @@ from torchvision import transforms, utils
 # Ignore warnings
 import warnings
 
-from experimental_code.voc2012_tool.dataset_voc2012_utils import get_files_absolute_path, parse_label_image
-# from dataset_voc2012_utils import get_files_absolute_path, parse_label_image
+from voc2012_tool.dataset_voc2012_utils import get_files_absolute_path, parse_label_image
 
 warnings.filterwarnings("ignore")
 plt.ion()   # interactive mode
@@ -101,11 +100,10 @@ class ToTensor(object):
 
 class voc2012_dataset(Dataset):
     '''voc2012 dataset'''
-    imgs =list()
-    image_dir =''
-
     def __init__(self,type,main_dir,image_dir,label_map,transform=None,verbose=False):
         self.transform = transform
+        self.imgs=[]
+        self.label_num = len(label_map)
         if image_dir[-1]!='/':
             image_dir=image_dir+'/'
         self.image_dir=image_dir
@@ -128,16 +126,17 @@ class voc2012_dataset(Dataset):
     def __getitem__(self, index):
         image_path=os.path.join(self.image_dir,self.imgs[index][0]+'.jpg')
         image = io.imread(image_path)
-        sample ={'image':image,'label':self.imgs[index][1]}
+        sample ={'image':image,
+                 'label':self.imgs[index][1]}
         if self.transform:
             sample=self.transform(sample)
         return sample
 
 
+label_int_map ={'bus': 0,'bird': 1,'dog': 2,'sofa': 3,'cow': 4,'tvmonitor': 5,'person': 6,'bicycle': 7,'motorbike': 8,'diningtable': 9,'bottle': 10,'chair': 11,'boat': 12,'car': 13,'cat': 14,'sheep': 15,'train': 16,'pottedplant': 17,'aeroplane': 18,'horse': 19}
 
 if __name__ =='__main__':
     # 示例代码
-    label_int_map ={'bird': 1,'dog': 2,'sofa': 3,'cow': 4,'tvmonitor': 5,'person': 6,'bicycle': 7,'motorbike': 8,'diningtable': 9,'bottle': 10,'chair': 11,'boat': 12,'car': 13,'cat': 14,'sheep': 15,'train': 16,'pottedplant': 17,'aeroplane': 18,'horse': 19,'bus': 20}
     int_label_map = {}
     for l in label_int_map:
         int_label_map[label_int_map[l]]=l
@@ -145,13 +144,14 @@ if __name__ =='__main__':
                               'G:/大二/实验室学习/voc2012/VOC2012/ImageSets/Main',
                               'G:/大二/实验室学习/voc2012/VOC2012/JPEGImages',
                               label_int_map,
-                              transform=transforms.Compose([Rescale((224,224)),ToTensor()]))
+                              transform=transforms.Compose([Rescale((224,224))]))
+
     s = dataset[0]
 
     # 展示图片
     fig = plt.figure()
 
-    for i in range(1):
+    for i in range(5):
         sample = dataset[i*80]
         print('label:' + int_label_map[sample['label']],
               'shape' + str(sample['image'].shape))
