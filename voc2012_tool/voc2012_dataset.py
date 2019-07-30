@@ -14,7 +14,7 @@ from torchvision import transforms, utils
 # Ignore warnings
 import warnings
 
-from voc2012_tool.dataset_voc2012_utils import get_files_absolute_path, parse_label_image
+from voc2012_tool import get_files_absolute_path, parse_label_image
 
 warnings.filterwarnings("ignore")
 plt.ion()   # interactive mode
@@ -86,7 +86,7 @@ class RandomCrop(object):
         return {'image': image, 'label': sample['label']}
 
 class ToTensor(object):
-    """Convert ndarrays in sample to Tensors."""
+    """将读入的图片转化为Tensor."""
 
     def __call__(self, sample):
         image= sample['image']
@@ -101,6 +101,15 @@ class ToTensor(object):
 class voc2012_dataset(Dataset):
     '''voc2012 dataset'''
     def __init__(self,type,main_dir,image_dir,label_map,transform=None,verbose=False):
+        '''
+        创建一个voc2012数据集的读取器
+        :param type: 读入数据类型，其值为['train','val','trainval']中的一个，类型为str
+        :param main_dir: 包含数据集的目录，目录下所有文件格式与 VOC2012/ImageSet/Main相同
+        :param image_dir: 包含图片的数据集，VOC2012/JPEGImages/
+        :param label_map: 标签与类的对应关系，在本文件中已经提供一个变量label_int_map
+        :param transform: 读入数据的转换器，请使用本文件中提供的转换器
+        :param verbose: 控制log输出，verbose == True时在控制台打印输出读取进度
+        '''
         self.transform = transform
         self.imgs=[]
         self.label_num = len(label_map)
