@@ -132,6 +132,11 @@ class voc2012_dataset(Dataset):
             sample=self.transform(sample)
         return sample
 
+def show_image(img):
+    fig = plt.figure()
+    plt.imshow(img['image'])
+    plt.pause(0.01)
+    plt.show()
 
 label_int_map ={'bus': 0,'bird': 1,'dog': 2,'sofa': 3,'cow': 4,'tvmonitor': 5,'person': 6,'bicycle': 7,'motorbike': 8,'diningtable': 9,'bottle': 10,'chair': 11,'boat': 12,'car': 13,'cat': 14,'sheep': 15,'train': 16,'pottedplant': 17,'aeroplane': 18,'horse': 19}
 

@@ -7,7 +7,8 @@ from torchvision import transforms
 import torchvision.models as models
 from torch.utils.data import DataLoader
 
-from voc2012_tool.voc2012_dataset import voc2012_dataset, Rescale, ToTensor,label_int_map
+from voc2012_tool.voc2012_dataset import voc2012_dataset, Rescale, ToTensor, label_int_map, show_image
+
 
 # 模型显存占用监测函数
 # model：输入的模型
@@ -52,6 +53,14 @@ class my_VGG(nn.Module):
         self.vgg = model
         self.soft_max = nn.Softmax()
         self.fc = nn.Linear(1000,class_num)
+        layers = []
+        for layer in model.features:
+            layers.append(layer)
+        layers.append(self.soft_max)
+        layers.append(self.fc)
+        self.features=nn.Sequential(*layers)
+        # self.classifier
+
 
     def forward(self, x):
         out = self.vgg(x)
@@ -59,21 +68,47 @@ class my_VGG(nn.Module):
         out = self.fc(out)
         return out
 
+def test():
+    jpeg_images = 'G:/VOCdevkit/VOC2012/JPEGImages'
+    main_dir = 'G:/VOCdevkit/VOC2012/ImageSets/Main'
+    data_type = 'train'
+    model = torch.load(r'C:\Users\1170300519\Desktop\YANGJIN\experimental_code\vgg19_voc2012\vgg_19_trained.pth')
+    dataset_train = voc2012_dataset(data_type,
+                                    main_dir,
+                                    jpeg_images,
+                                    label_int_map,
+                                    transform=transforms.Compose([Rescale((224,224))]))
+
+    input = dataset_train[0]
+    show_image(input)
+    to_tentor=ToTensor()
+    in_=to_tentor(input)['image'].unsqueeze(dim=0).to(torch.device('cuda')).float()
+    out = model(in_)
+    print('输出',out)
+    print('输入',input['label'])
+
+
+
 if __name__ =='__main__':
+    test()
+
     verbose = True
     label_int_map = label_int_map
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # device = torch.device('cpu')
-    vgg_model = my_VGG(models.vgg11(), len(label_int_map))
+    vgg_model = my_VGG(models.vgg19(), len(label_int_map))
     if verbose:
         print('加载模型之前的显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
     vgg_model.to(device)
     if verbose:
         print('加载模型之后的显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
 
-    batch_size,num_works,shuffle,lr = 2,6,True,0.01
-    jpeg_images = 'G:/大二/实验室学习/voc2012/VOC2012/JPEGImages'
-    main_dir = 'G:/大二/实验室学习/voc2012/VOC2012/ImageSets/Main'
+    torch.save(vgg_model,'vgg19_raw.pt')
+
+    batch_size,num_works,shuffle,lr = 16,6,True,0.01
+    epoch = 30
+    jpeg_images = 'G:/VOCdevkit/VOC2012/JPEGImages'
+    main_dir = 'G:/VOCdevkit/VOC2012/ImageSets/Main'
     data_type = 'train'
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(vgg_model.parameters(), lr=lr)
@@ -88,33 +123,43 @@ if __name__ =='__main__':
     if verbose:
         print('使用计算平台',device)
         print('batch size:',batch_size)
-    for batch,sample_batched in enumerate(dataloader_train):
-        print('第',batch,'个batch')
-        torch.cuda.empty_cache()
+    index=0
+    for ep in range(epoch):
+        if ep%3 ==0:
+            torch.save(vgg_model,'F:/vgg_model/vgg_19_epoch_'+str(ep)+'.pth')
+        print('epoch',ep+1)
+        for batch,sample_batched in enumerate(dataloader_train):
+            index+=1
 
-        print('开始计算，清除catch之后的显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
-        sample_batched['image'] = sample_batched['image'].to(device)
-        print('读取一个batch_img,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
-        sample_batched['label'] = sample_batched['label'].to(device)
-        print('读取一个batch_label,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            # print('第',batch,'个batch')
+            torch.cuda.empty_cache()
 
-        # 前向传播
-        pred = vgg_model(sample_batched['image'].float())
-        print('前向传播,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            # print('开始计算，清除catch之后的显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            sample_batched['image'] = sample_batched['image'].to(device)
+            # print('读取一个batch_img,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            sample_batched['label'] = sample_batched['label'].to(device)
+            # print('读取一个batch_label,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
 
-        # 计算loss
-        loss = criterion(pred,sample_batched['label'])
-        print('计算loss,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            # 前向传播
+            pred = vgg_model(sample_batched['image'].float())
+            # print('前向传播,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+
+            # 计算loss
+            loss = criterion(pred,sample_batched['label'])
+            # print('计算loss,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
 
 
-        if verbose:
-            print('loss: ',loss.item())
 
-        # 反向传播
-        optimizer.zero_grad()
-        loss.backward()
-        print('反向传播,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            # 反向传播
+            optimizer.zero_grad()
+            loss.backward()
+            # print('反向传播,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
 
-        # 更新参数
-        optimizer.step()
-        print('更新参数,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            # 更新参数
+            optimizer.step()
+            # print('更新参数,显存占用',torch.cuda.memory_allocated(),'/',torch.cuda.max_memory_allocated())
+            if index %10 ==0:
+                print('计算次数',index)
+                if verbose:
+                    print('loss: ',loss.item())
+        torch.save(vgg_model, 'vgg_19_trained.pth')
