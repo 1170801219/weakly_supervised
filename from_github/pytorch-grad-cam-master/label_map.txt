@@ -1,0 +1,1 @@
+'boat': 1,'diningtable': 2,'tvmonitor': 3,'bottle': 4,'chair': 5,'sofa': 6,'bird': 7,'bus': 8,'car': 9,'person': 10,'sheep': 11,'cow': 12,'aeroplane': 13,'cat': 14,'bicycle': 15,'dog': 16,'motorbike': 17,'horse': 18,'train': 19,'pottedplant': 20,
