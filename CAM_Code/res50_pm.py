@@ -1,19 +1,16 @@
-import torch
-from torch.autograd import Variable
-from torchvision import models
-import torch.optim as optim
-import numpy as np
-import torchvision
-import time
-from PIL import Image
-from torchvision.utils import save_image
-from torchvision import datasets, models, transforms
-import  torch.nn as nn
-import torch.nn.functional as F
 import os
-import math
-from torch.optim.lr_scheduler import StepLR
-from sklearn.metrics import average_precision_score
+import time
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from PIL import Image
+from torch.autograd import Variable
+from torchvision import models, transforms
+
+# from sklearn.metrics import average_precision_score
 device=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_epochs=30
 batch_size=62
@@ -344,8 +341,8 @@ if __name__=="__main__":
 
     net = Net()
     start_epoch = 3
-    params_path = '/media/data/users/master/2018/zhanghan/trained_models_cam-decoder/res50_de_pm-{}.pth'.format(start_epoch)
-    net.load_state_dict(torch.load(params_path))
+    # params_path = '/media/data/users/master/2018/zhanghan/trained_models_cam-decoder/res50_de_pm-{}.pth'.format(start_epoch)
+    # net.load_state_dict(torch.load(params_path))
 
     print(net)
 

@@ -1,14 +1,9 @@
-import cv2
-import sys
 import argparse
+
+import cv2
 import numpy as np
-
 import torch
-from torchvision import utils
-from torchvision import models
-from torch.autograd import Function
 from torch.autograd import Variable
-
 
 TEST_IMG_PATH = '/media/data/users/master/2018/zhanghan/data/voc2012/val'
 VAL_LABEL_PATH = '/media/data/users/master/2018/zhanghan/data/voc2012/val_labels.txt'
@@ -166,8 +161,6 @@ def get_args():
 
 if __name__ == '__main__':
     from res50_pm import get_cam_model
-    from utils import label2img
-    from utils import dcrf
 
     """ python grad_cam.py <path_to_image>
 	1. Loads an image with opencv.
@@ -184,7 +177,6 @@ if __name__ == '__main__':
     grad_cam = GradCam(model=model,
                        target_layer_names="upsample", use_cuda=args.use_cuda)
     import os
-    from PIL import Image
 
     with open(VAL_LABEL_PATH, 'r') as f:
         lines = f.readlines()
