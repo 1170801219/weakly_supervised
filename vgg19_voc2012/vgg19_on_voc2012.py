@@ -4,6 +4,7 @@ import sys
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from torch.hub import load_state_dict_from_url
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from torchvision import transforms
@@ -11,6 +12,16 @@ from torchvision.datasets.voc import VOCDetection
 from torchvision.models.vgg import make_layers, cfgs
 
 _output = sys.stdout
+model_urls = {
+    'vgg11': 'https://download.pytorch.org/models/vgg11-bbd30ac9.pth',
+    'vgg13': 'https://download.pytorch.org/models/vgg13-c768596a.pth',
+    'vgg16': 'https://download.pytorch.org/models/vgg16-397923af.pth',
+    'vgg19': 'https://download.pytorch.org/models/vgg19-dcbb9e9d.pth',
+    'vgg11_bn': 'https://download.pytorch.org/models/vgg11_bn-6002323d.pth',
+    'vgg13_bn': 'https://download.pytorch.org/models/vgg13_bn-abd245e5.pth',
+    'vgg16_bn': 'https://download.pytorch.org/models/vgg16_bn-6c64b313.pth',
+    'vgg19_bn': 'https://download.pytorch.org/models/vgg19_bn-c79401a0.pth',
+}
 
 def voc_collate_fn(batch_list):
     '''
@@ -35,12 +46,17 @@ def voc_collate_fn(batch_list):
 class my_VGG(models.VGG):
     vgg_cfg_map = {11:'A',13:'B',16:'D',19:'E'}
 
-    def __init__(self, num_classes, vgg_type, batch_norm=False, verbose=False):
+    def __init__(self, num_classes, vgg_type, pre_train, batch_norm=False, verbose=False):
         self.verbose = verbose
         cfg=self.vgg_cfg_map[vgg_type]
         super(my_VGG,self).__init__(make_layers(cfgs[cfg], batch_norm=batch_norm), num_classes=num_classes)
+        if pre_train:
+            state_dict = load_state_dict_from_url(model_urls['vgg{}'.format(vgg_type)],
+                                                  progress=True)
+            self.load_state_dict(state_dict)
 
-    def forward(self, x):
+
+def forward(self, x):
         if self.verbose:
             print('输入数据维度：{}'.format(x.shape))
         return super(my_VGG, self).forward(x)
@@ -125,14 +141,15 @@ def validating(loader, vgg_model, criterion, optimizer, output_processor, label_
 
 
 def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, use_gpu=True, shuffle=True, verbose=True,
-                num_works=0, prev_model=None):
+                num_works=0, prev_model=None, pre_train=False):
     table_head = ['epoch', 'train loss', 'validate loss']
     csv_writer = csv.writer(open(log_save_file, 'w', newline=''))
     csv_writer.writerow(table_head)
     label_int_map = {'bus': 0, 'bird': 1, 'dog': 2, 'sofa': 3, 'cow': 4, 'tvmonitor': 5, 'person': 6, 'bicycle': 7,
                      'motorbike': 8, 'diningtable': 9, 'bottle': 10, 'chair': 11, 'boat': 12, 'car': 13, 'cat': 14,
                      'sheep': 15, 'train': 16, 'pottedplant': 17, 'aeroplane': 18, 'horse': 19}
-    vgg_model = my_VGG(num_classes=len(label_int_map), vgg_type=vgg_type, batch_norm=False, verbose=False)
+    vgg_model = my_VGG(num_classes=len(label_int_map), vgg_type=vgg_type, pre_train=pre_train, batch_norm=False,
+                       verbose=False)
     # 载入以前训练的模型
     if prev_model != None:
         vgg_model = (torch.load(prev_model))
@@ -185,6 +202,7 @@ def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, us
                 print('new validation loss:{}'.format(vl))
                 print('保存最优训练结果： vgg_{1}_epoch_{0}_dict.pth'.format(ep, vgg_type))
             torch.save(vgg_model.state_dict(), 'vgg_{1}_epoch_{0}_dict.pth'.format(ep, vgg_type))
+            val_loss = vl
         # 保存最近一次训练出的模型
         if verbose:
             print('保存此次训练结果：[epoch:{}]\t[train loss:{}]\t[valid loss:{}]'.format(ep + 1, tl, vl))
@@ -203,4 +221,4 @@ if __name__ =='__main__':
 
     #     训练模型
     train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, use_gpu,
-                shuffle, verbose, num_works)  # 'vgg_{}_trained.pth'.format(vgg_type)
+                shuffle, verbose, num_works, pre_train=False)  # 'vgg_{}_trained.pth'.format(vgg_type)
