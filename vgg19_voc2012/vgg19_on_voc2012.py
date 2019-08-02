@@ -1,4 +1,5 @@
 import csv
+import sys
 
 import torch
 import torch.nn as nn
@@ -9,6 +10,7 @@ from torchvision import transforms
 from torchvision.datasets.voc import VOCDetection
 from torchvision.models.vgg import make_layers, cfgs
 
+_output = sys.stdout
 
 def voc_collate_fn(batch_list):
     '''
@@ -87,8 +89,10 @@ def training(loader, vgg_model, criterion, optimizer, output_processor, label_in
         sum_loss += loss.item()
         avg_loss = sum_loss / (batch_idx + 1)
         if verbose:
-            print(('train\t[epoch:{2}]\t[batch:{0}]\t[loss:{1}]\t[average loss:{3}]').format(batch_idx, loss.item(),
+            _output.write(
+                ('\rtrain\t[epoch:{2}]\t[batch:{0}]\t[loss:{1}]\t[average loss:{3}]').format(batch_idx, loss.item(),
                                                                                              ep + 1, avg_loss))
+    print('\r')
     return avg_loss
 
 
@@ -113,13 +117,15 @@ def validating(loader, vgg_model, criterion, optimizer, output_processor, label_
         sum_loss += loss.item()
         avg_loss = sum_loss / (batch_idx + 1)
         if verbose:
-            print(('valid\t[epoch:{2}]\t[batch:{0}]\t[loss:{1}]\t[average loss:{3}]').format(batch_idx, loss.item(),
+            _output.write(
+                ('\rvalid\t[epoch:{2}]\t[batch:{0}]\t[loss:{1}]\t[average loss:{3}]').format(batch_idx, loss.item(),
                                                                                              ep + 1, avg_loss))
+    print('\r')
     return avg_loss
 
 
 def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, use_gpu=True, shuffle=True, verbose=True,
-                num_works=0):
+                num_works=0, prev_model=None):
     table_head = ['epoch', 'train loss', 'validate loss']
     csv_writer = csv.writer(open(log_save_file, 'w', newline=''))
     csv_writer.writerow(table_head)
@@ -127,6 +133,12 @@ def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, us
                      'motorbike': 8, 'diningtable': 9, 'bottle': 10, 'chair': 11, 'boat': 12, 'car': 13, 'cat': 14,
                      'sheep': 15, 'train': 16, 'pottedplant': 17, 'aeroplane': 18, 'horse': 19}
     vgg_model = my_VGG(num_classes=len(label_int_map), vgg_type=vgg_type, batch_norm=False, verbose=False)
+    # 载入以前训练的模型
+    if prev_model != None:
+        vgg_model = (torch.load(prev_model))
+        vgg_model.eval()
+        if verbose:
+            print('载入之前模型：{}'.format(prev_model))
     use_gpu = torch.cuda.is_available() and use_gpu
     device = torch.device('cuda' if use_gpu else 'cpu')
     if use_gpu:
@@ -139,7 +151,7 @@ def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, us
         transforms.Resize((224, 224)),
         transforms.ToTensor()
     ])
-    criterion = nn.BCELoss()
+    criterion = nn.BCELoss(reduction='sum')
     optimizer = torch.optim.SGD(vgg_model.parameters(), lr=lr)
     sigmoid = nn.Sigmoid()
 
@@ -152,9 +164,9 @@ def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, us
                                 collate_fn=voc_collate_fn)
 
     if verbose:
+        print('数据初始化完毕，开始训练')
         print('使用计算平台', device)
         print('batch size:', batch_size)
-    train_loss = float('inf')
     val_loss = float('inf')
 
     # 开始模型训练
@@ -163,6 +175,7 @@ def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, us
                       use_gpu, ep)
         vl = validating(dataloader_val, vgg_model, criterion, optimizer, sigmoid, label_int_map, verbose, device,
                         use_gpu, ep)
+
         # 记录此次训练结果
         epoch_result = [ep, tl, vl]
         csv_writer.writerow(epoch_result)
@@ -170,22 +183,24 @@ def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, us
         if vl < val_loss:
             if verbose:
                 print('new validation loss:{}'.format(vl))
+                print('保存最优训练结果： vgg_{1}_epoch_{0}_dict.pth'.format(ep, vgg_type))
             torch.save(vgg_model.state_dict(), 'vgg_{1}_epoch_{0}_dict.pth'.format(ep, vgg_type))
         # 保存最近一次训练出的模型
+        if verbose:
+            print('保存此次训练结果：[epoch:{}]\t[train loss:{}]\t[valid loss:{}]'.format(ep + 1, tl, vl))
         torch.save(vgg_model, 'vgg_{}_trained.pth'.format(vgg_type))
-
+    print('模型vgg_{}训练完毕'.format(vgg_type))
 
 if __name__ =='__main__':
-    pass
     # 初始化参数
     verbose = True
-    use_gpu = False
-    batch_size, num_works, shuffle, lr = 4, 0, True, 0.01
+    use_gpu = True
+    batch_size, num_works, shuffle, lr = 16, 0, True, 0.01
     epoch = 300
     vgg_type = 19  # 11，13，16，19 中选择一个
-    voc2012_root = r'G:\大二\实验室学习'
+    voc2012_root = r'~/dataset'
     log_save_file = 'vgg_{}_train_log.csv'.format(vgg_type)
 
     #     训练模型
     train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, use_gpu,
-                shuffle, verbose, num_works)
+                shuffle, verbose, num_works)  # 'vgg_{}_trained.pth'.format(vgg_type)
