@@ -3,21 +3,26 @@
 # pandas: For easier csv parsing
 
 from __future__ import print_function, division
+
 import os
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from skimage import io, transform
-import numpy as np
-import matplotlib.pyplot as plt
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
-
-# Ignore warnings
-import warnings
+from torch.utils.data import Dataset
+from torchvision import transforms
 
 from voc2012_tool import get_files_absolute_path, parse_label_image
 
-warnings.filterwarnings("ignore")
-plt.ion()   # interactive mode
+# Ignore warnings
+
+label_int_map = {'bus': 0, 'bird': 1, 'dog': 2, 'sofa': 3, 'cow': 4, 'tvmonitor': 5, 'person': 6, 'bicycle': 7,
+                 'motorbike': 8, 'diningtable': 9, 'bottle': 10, 'chair': 11, 'boat': 12, 'car': 13, 'cat': 14,
+                 'sheep': 15, 'train': 16, 'pottedplant': 17, 'aeroplane': 18, 'horse': 19}
+int_label_map = {0: 'bus', 1: 'bird', 2: 'dog', 3: 'sofa', 4: 'cow', 5: 'tvmonitor', 6: 'person', 7: 'bicycle',
+                 8: 'motorbike', 9: 'diningtable', 10: 'bottle', 11: 'chair', 12: 'boat', 13: 'car', 14: 'cat',
+                 15: 'sheep', 16: 'train', 17: 'pottedplant', 18: 'aeroplane', 19: 'horse'}
 
 class Rescale(object):
     """Rescale the image in a sample to a given size.
@@ -147,8 +152,6 @@ def show_image(img):
     plt.pause(0.01)
     plt.show()
 
-label_int_map ={'bus': 0,'bird': 1,'dog': 2,'sofa': 3,'cow': 4,'tvmonitor': 5,'person': 6,'bicycle': 7,'motorbike': 8,'diningtable': 9,'bottle': 10,'chair': 11,'boat': 12,'car': 13,'cat': 14,'sheep': 15,'train': 16,'pottedplant': 17,'aeroplane': 18,'horse': 19}
-int_label_map={0: 'bus', 1: 'bird', 2: 'dog', 3: 'sofa', 4: 'cow', 5: 'tvmonitor', 6: 'person', 7: 'bicycle', 8: 'motorbike', 9: 'diningtable', 10: 'bottle', 11: 'chair', 12: 'boat', 13: 'car', 14: 'cat', 15: 'sheep', 16: 'train', 17: 'pottedplant', 18: 'aeroplane', 19: 'horse'}
 
 if __name__ =='__main__':
     # 示例代码
