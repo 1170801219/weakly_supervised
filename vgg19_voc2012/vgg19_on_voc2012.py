@@ -53,6 +53,13 @@ class my_VGG(models.VGG):
         if pre_train:
             state_dict = load_state_dict_from_url(model_urls['vgg{}'.format(vgg_type)],
                                                   progress=True)
+            # 更换最后一个全连接层的维度
+            items_to_change = list(state_dict)[-2:]
+            for item in items_to_change:
+                if 'weight' in item:
+                    state_dict[item] = torch.randn((num_classes, state_dict[item].shape[1]))
+                else:  # 初始化bias
+                    state_dict[item] = torch.randn((num_classes))
             self.load_state_dict(state_dict)
 
 
@@ -143,7 +150,8 @@ def validating(loader, vgg_model, criterion, optimizer, output_processor, label_
 def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, use_gpu=True, shuffle=True, verbose=True,
                 num_works=0, prev_model=None, pre_train=False):
     table_head = ['epoch', 'train loss', 'validate loss']
-    csv_writer = csv.writer(open(log_save_file, 'w', newline=''))
+    log_file = open(log_save_file, 'a', newline='')
+    csv_writer = csv.writer(log_file)
     csv_writer.writerow(table_head)
     label_int_map = {'bus': 0, 'bird': 1, 'dog': 2, 'sofa': 3, 'cow': 4, 'tvmonitor': 5, 'person': 6, 'bicycle': 7,
                      'motorbike': 8, 'diningtable': 9, 'bottle': 10, 'chair': 11, 'boat': 12, 'car': 13, 'cat': 14,
@@ -207,6 +215,7 @@ def train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, us
         if verbose:
             print('保存此次训练结果：[epoch:{}]\t[train loss:{}]\t[valid loss:{}]'.format(ep + 1, tl, vl))
         torch.save(vgg_model, 'vgg_{}_trained.pth'.format(vgg_type))
+    log_file.close()
     print('模型vgg_{}训练完毕'.format(vgg_type))
 
 if __name__ =='__main__':
@@ -221,4 +230,4 @@ if __name__ =='__main__':
 
     #     训练模型
     train_model(vgg_type, voc2012_root, batch_size, epoch, lr, log_save_file, use_gpu,
-                shuffle, verbose, num_works, pre_train=False)  # 'vgg_{}_trained.pth'.format(vgg_type)
+                shuffle, verbose, num_works, pre_train=True)  # 'vgg_{}_trained.pth'.format(vgg_type)
