@@ -54,11 +54,20 @@ def restore_annotations(dataset_path):
     copy_files(backup_dir, annotation_dir)
 
 
-def randomize_xml(dataset_path, ratio, correct_annotation_dir):
+def randomize_xml(dataset_path, ratio, correct_annotation_dir, verbose=True):
+    '''
+    向voc2012数据集添加噪声，噪声比例由ratio指定。
+    :param dataset_path:
+    :param ratio:
+    :param correct_annotation_dir:
+    :return:
+    '''
     labels = ['bird', 'train', 'tvmonitor', 'pottedplant', 'cat', 'sofa', 'car', 'aeroplane', 'dog', 'cow',
               'diningtable', 'person', 'horse', 'motorbike', 'boat', 'sheep', 'bottle', 'bus', 'bicycle', 'chair']
     used_annotations = get_used_annotations(dataset_path)
     number_to_change = int(len(used_annotations) * ratio)
+    if verbose:
+        print('被改变标签的文件数量：{}'.format(number_to_change))
     files_to_change = random.sample(used_annotations, number_to_change)
     annotation_dir = os.path.join(dataset_path, r'VOCdevkit/VOC2012/Annotations')
     for file in files_to_change:

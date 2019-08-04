@@ -1,0 +1,5 @@
+﻿在服务器上运行代码
+nohup python vgg_on_voc2012.py "~/data" 128 300 0.001 8 --use-cuda -vgg_type 19 -prev_model "vgg_19_trained.pth" > train_log2.txt &
+
+第二次训练
+nohup python vgg_on_voc2012.py "~/data" 200 700 0.03 8 -vgg_type 19 --use-cuda -prev_model vgg_19_trained.pth > train_log2.txt &

@@ -3,12 +3,7 @@ import argparse
 import cv2
 import numpy as np
 import torch
-from torch.autograd import Function
 from torch.autograd import Variable
-from torchvision import models
-from torchvision import utils
-
-from vgg19_voc2012.vgg19_on_voc2012 import my_VGG
 
 
 class FeatureExtractor():
@@ -131,6 +126,8 @@ def get_args():
                         help='Use NVIDIA GPU acceleration')
     parser.add_argument('--image-path', type=str, default='./examples/cat.jpg',
                         help='Input image path')
+    parser.add_argument('--output-path', type=str, default='./cam.jpg',
+                        help='Output image path')
     args = parser.parse_args()
     args.use_cuda = args.use_cuda and torch.cuda.is_available()
     if args.use_cuda:
@@ -153,11 +150,17 @@ if __name__ == '__main__':
     # Can work with any model, but it assumes that the model has a
     # feature method, and a classifier method,
     # as in the VGG models in torchvision.
-    md = torch.load(r'G:\my_code\python\weakly_superivsed\experimental_code\vgg19_voc2012\vgg19_raw.pt',map_location=torch.device('cpu'))
-    md.eval()
 
-    grad_cam = GradCam(model = models.vgg19(pretrained=True), \
-                    target_layer_names = ["35"], use_cuda=args.use_cuda)
+    md = torch.load(r'G:\my_code\python\weakly_superivsed\bin\vgg_model\no noise\vgg_19_trained.pth',
+                    map_location=torch.device('cpu'))
+    md.eval()
+    md.load_state_dict(torch.load(r'G:\my_code\python\weakly_superivsed\bin\vgg_model\no noise\vgg_19_best_dict.pth',
+                                  map_location=torch.device('cpu')))
+    md.eval()
+    md = md._modules['module']  # 从dataparallel中提取出原来的模型
+
+    grad_cam = GradCam(model=md, \
+                       target_layer_names = ["35"], use_cuda=args.use_cuda)
 
     img = cv2.imread(args.image_path, 1)
     img = np.float32(cv2.resize(img, (224, 224))) / 255
@@ -169,4 +172,4 @@ if __name__ == '__main__':
 
     mask = grad_cam(input, target_index)
 
-    save_cam_to_image(img, mask,"cam.jpg")
+    save_cam_to_image(img, mask, args.output_path)
